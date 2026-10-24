@@ -1,0 +1,14 @@
+{
+  "host": "",
+  "port": 25565,
+  "version": "",
+  "username": "",
+  "authMode": "microsoft",
+  "autoReconnect": true,
+  "autoLogin": false,
+  "loginCommand": "/login {password}",
+  "autoMessage": false,
+  "autoMessageText": "",
+  "autoMessageIntervalSeconds": 300,
+  "tradeCommand": ""
+}
