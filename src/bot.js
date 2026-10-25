@@ -1,195 +1,215 @@
 const mineflayer = require('mineflayer');
 const path = require('node:path');
-const { EventEmitter } = require('node:events');
-const { loadConfig } = require('./config');
+const { mineflayer: startViewer } = require('prismarine-viewer');
+const { getAccountForBot, getAccount } = require('./accounts');
 
-const events = new EventEmitter();
-const state = { status: 'offline', lastError: '', connectedAt: null, reconnectInMs: 0 };
-let bot = null;
-let manuallyStopped = true;
-let reconnectTimer = null;
-let messageTimer = null;
-let reconnectAttempts = 0;
+const sessions = new Map();
+const portBaseValue = Number.parseInt(process.env.VIEWER_PORT_BASE || '32000', 10);
+const VIEWER_PORT_BASE = Number.isInteger(portBaseValue) && portBaseValue > 1024 && portBaseValue < 64000 ? portBaseValue : 32000;
+const maxValue = Number.parseInt(process.env.MAX_ACTIVE_BOTS || '3', 10);
+const MAX_ACTIVE_BOTS = Number.isInteger(maxValue) ? Math.max(1, Math.min(maxValue, 12)) : 3;
+let nextPortOffset = 0;
 
-function publish() {
-  events.emit('change', getState());
+function viewerPortForNewSession() {
+  const used = new Set([...sessions.values()].map((session) => session.viewerPort).filter(Boolean));
+  for (let attempt = 0; attempt < 500; attempt += 1) {
+    const port = VIEWER_PORT_BASE + ((nextPortOffset + attempt) % 500);
+    if (port < 64000 && !used.has(port)) {
+      nextPortOffset = (nextPortOffset + attempt + 1) % 500;
+      return port;
+    }
+  }
+  throw new Error('No viewer port is available.');
 }
 
 function cleanReason(reason) {
   let text;
-  try {
-    text = typeof reason === 'string' ? reason : JSON.stringify(reason);
-  } catch {
-    text = String(reason);
-  }
-  return String(text || 'Unknown connection error')
-    .replace(/(password|secret|token)\s*[:=]\s*[^\s,]+/gi, '$1=[redacted]')
-    .slice(0, 240);
+  try { text = typeof reason === 'string' ? reason : JSON.stringify(reason); } catch { text = String(reason); }
+  return String(text || 'Unknown connection error').replace(/(password|secret|token)\s*[:=]\s*[^\s,]+/gi, '$1=[redacted]').slice(0, 240);
 }
 
-function getState() {
-  const config = loadConfig();
+function publicState(id) {
+  const account = getAccount(id);
+  if (!account) return null;
+  const session = sessions.get(id);
   return {
-    status: state.status,
-    lastError: state.lastError,
-    connectedAt: state.connectedAt,
-    reconnectInMs: state.reconnectInMs,
-    reconnectAttempts,
-    username: config.username,
-    host: config.host,
-    port: config.port,
-    authMode: config.authMode,
-    loginSecretConfigured: Boolean(process.env.MC_LOGIN_PASSWORD),
-    config
+    account,
+    status: session ? session.status : 'offline',
+    lastError: session ? session.lastError : '',
+    connectedAt: session ? session.connectedAt : null,
+    reconnectInMs: session ? session.reconnectInMs : 0,
+    viewerReady: Boolean(session && session.viewerReady && session.status === 'online')
   };
 }
 
-function clearActivityTimers() {
-  if (messageTimer) clearInterval(messageTimer);
-  messageTimer = null;
+function getViewerPort(id) {
+  const session = sessions.get(id);
+  return session && session.viewerReady && session.status === 'online' ? session.viewerPort : null;
 }
 
-function scheduleReconnect() {
-  if (manuallyStopped || reconnectTimer || !loadConfig().autoReconnect) return;
-  const delay = Math.min(30000, 2000 * (2 ** Math.min(reconnectAttempts, 4)));
-  reconnectAttempts += 1;
-  state.reconnectInMs = delay;
-  publish();
-  reconnectTimer = setTimeout(() => {
-    reconnectTimer = null;
-    if (!manuallyStopped) connectBot();
+function closeViewer(session) {
+  if (session.bot && session.bot.viewer && typeof session.bot.viewer.close === 'function') {
+    try { session.bot.viewer.close(); } catch {}
+  }
+  session.viewerReady = false;
+  session.viewerPort = null;
+}
+
+function scheduleReconnect(session) {
+  if (session.manualStop || session.reconnectTimer) return;
+  const account = getAccount(session.id);
+  if (!account || !account.autoReconnect) {
+    sessions.delete(session.id);
+    return;
+  }
+  const delay = Math.min(30000, 2000 * (2 ** Math.min(session.reconnectAttempts, 4)));
+  session.reconnectAttempts += 1;
+  session.reconnectInMs = delay;
+  session.reconnectTimer = setTimeout(() => {
+    session.reconnectTimer = null;
+    if (!session.manualStop && sessions.get(session.id) === session) connect(session);
   }, delay);
 }
 
-function connectBot() {
-  const config = loadConfig();
-  if (!config.host) throw new Error('Önce sunucu adresini ayarla.');
-  if (!config.username) throw new Error('Önce Minecraft kullanıcı adını ayarla.');
-
-  state.status = 'connecting';
-  state.lastError = '';
-  state.reconnectInMs = 0;
-  publish();
-
+function connect(session) {
+  let account;
   try {
+    account = getAccountForBot(session.id);
+    if (!account) throw new Error('Account not found.');
+    if (!account.host || !account.username) throw new Error('Account name, username, and server are required.');
+    session.status = 'connecting';
+    session.lastError = '';
+    session.reconnectInMs = 0;
+
     const current = mineflayer.createBot({
-      host: config.host,
-      port: config.port,
-      username: config.username,
-      auth: config.authMode,
-      version: config.version || false,
-      profilesFolder: path.join(process.cwd(), '.minecraft-auth')
+      host: account.host,
+      port: account.port,
+      username: account.username,
+      auth: account.authMode,
+      version: account.version || false,
+      profilesFolder: path.join(process.cwd(), '.minecraft-auth', session.id)
     });
-    bot = current;
+    session.bot = current;
 
     current.once('spawn', () => {
-      if (bot !== current) return;
-      state.status = 'online';
-      state.lastError = '';
-      state.connectedAt = Date.now();
-      state.reconnectInMs = 0;
-      reconnectAttempts = 0;
-      publish();
+      if (sessions.get(session.id) !== session || session.bot !== current) return;
+      session.status = 'online';
+      session.lastError = '';
+      session.connectedAt = Date.now();
+      session.reconnectAttempts = 0;
+      session.viewerPort = viewerPortForNewSession();
+      startViewer(current, { port: session.viewerPort, prefix: '/view/' + session.id, firstPerson: true, viewDistance: 6 });
+      session.viewerReady = true;
 
-      if (config.autoLogin) {
-        const loginSecret = process.env.MC_LOGIN_PASSWORD;
-        if (!loginSecret) {
-          state.lastError = 'Otomatik giriş için MC_LOGIN_PASSWORD secret değerini ekle.';
-          publish();
+      if (account.autoLogin) {
+        if (!account.serverLoginPassword) {
+          session.lastError = 'Auto-login enabled, but this account has no saved server /login password.';
         } else {
-          const command = config.loginCommand.includes('{password}')
-            ? config.loginCommand.replace(/\{password\}/g, loginSecret)
-            : config.loginCommand + ' ' + loginSecret;
+          const command = account.loginCommand.includes('{password}')
+            ? account.loginCommand.replace(/\{password\}/g, account.serverLoginPassword)
+            : account.loginCommand + ' ' + account.serverLoginPassword;
           setTimeout(() => {
-            if (bot === current && state.status === 'online') current.chat(command);
+            if (sessions.get(session.id) === session && session.bot === current && session.status === 'online') current.chat(command);
           }, 2500);
         }
       }
 
-      clearActivityTimers();
-      if (config.autoMessage && config.autoMessageText) {
-        messageTimer = setInterval(() => {
-          if (bot === current && state.status === 'online') current.chat(config.autoMessageText);
-        }, config.autoMessageIntervalSeconds * 1000);
+      if (account.autoMessage && account.autoMessageText) {
+        session.messageTimer = setInterval(() => {
+          if (sessions.get(session.id) === session && session.bot === current && session.status === 'online') current.chat(account.autoMessageText);
+        }, account.autoMessageIntervalSeconds * 1000);
       }
     });
 
-    current.on('kicked', (reason) => {
-      state.lastError = cleanReason(reason);
-      publish();
-    });
-    current.on('error', (error) => {
-      state.lastError = cleanReason(error && error.message ? error.message : error);
-      publish();
-    });
+    current.on('kicked', (reason) => { session.lastError = cleanReason(reason); });
+    current.on('error', (error) => { session.lastError = cleanReason(error && error.message ? error.message : error); });
     current.once('end', (reason) => {
-      if (bot !== current) return;
-      bot = null;
-      clearActivityTimers();
-      state.status = 'offline';
-      state.connectedAt = null;
-      if (reason) state.lastError = cleanReason(reason);
-      publish();
-      scheduleReconnect();
+      if (session.bot !== current) return;
+      if (session.messageTimer) clearInterval(session.messageTimer);
+      session.messageTimer = null;
+      closeViewer(session);
+      session.bot = null;
+      session.status = 'offline';
+      session.connectedAt = null;
+      if (reason) session.lastError = cleanReason(reason);
+      scheduleReconnect(session);
     });
   } catch (error) {
-    state.status = 'offline';
-    state.lastError = cleanReason(error && error.message ? error.message : error);
-    publish();
-    scheduleReconnect();
+    session.status = 'offline';
+    session.lastError = cleanReason(error && error.message ? error.message : error);
+    if (session.manualStop) sessions.delete(session.id);
+    else scheduleReconnect(session);
   }
 }
 
-function startBot() {
-  if (bot || state.status === 'connecting' || state.status === 'online') return getState();
-  manuallyStopped = false;
-  reconnectAttempts = 0;
-  if (reconnectTimer) clearTimeout(reconnectTimer);
-  reconnectTimer = null;
-  connectBot();
-  return getState();
+function startAccount(id) {
+  const existing = sessions.get(id);
+  if (existing) return publicState(id);
+  if (!getAccount(id)) throw new Error('Account not found.');
+  if (sessions.size >= MAX_ACTIVE_BOTS) throw new Error('Active session limit reached (' + MAX_ACTIVE_BOTS + '). Stop another account first.');
+  const session = {
+    id,
+    status: 'connecting',
+    lastError: '',
+    connectedAt: null,
+    viewerPort: null,
+    viewerReady: false,
+    reconnectInMs: 0,
+    reconnectAttempts: 0,
+    reconnectTimer: null,
+    messageTimer: null,
+    manualStop: false,
+    bot: null
+  };
+  sessions.set(id, session);
+  connect(session);
+  return publicState(id);
 }
 
-function stopBot() {
-  manuallyStopped = true;
-  if (reconnectTimer) clearTimeout(reconnectTimer);
-  reconnectTimer = null;
-  state.reconnectInMs = 0;
-  clearActivityTimers();
-  const current = bot;
-  if (!current) {
-    state.status = 'offline';
-    state.connectedAt = null;
-    publish();
-    return getState();
+function stopAccount(id) {
+  const session = sessions.get(id);
+  if (!session) return publicState(id);
+  session.manualStop = true;
+  if (session.reconnectTimer) clearTimeout(session.reconnectTimer);
+  if (session.messageTimer) clearInterval(session.messageTimer);
+  session.reconnectTimer = null;
+  session.messageTimer = null;
+  closeViewer(session);
+  if (!session.bot) {
+    session.status = 'offline';
+    sessions.delete(id);
+    return publicState(id);
   }
-  state.status = 'stopping';
-  publish();
-  current.quit('Stopped from web panel');
+  const current = session.bot;
+  session.status = 'stopping';
+  current.quit('Stopped from account panel');
   setTimeout(() => {
-    if (bot === current) {
-      bot = null;
-      state.status = 'offline';
-      state.connectedAt = null;
-      publish();
+    if (sessions.get(id) === session && session.bot === current) {
+      session.bot = null;
+      session.status = 'offline';
+      sessions.delete(id);
     }
   }, 3000);
-  return getState();
+  return publicState(id);
 }
 
-function sendChat(message) {
-  if (!bot || state.status !== 'online') throw new Error('Bot çevrimiçi değil.');
+function sendChat(id, message) {
+  const session = sessions.get(id);
+  if (!session || !session.bot || session.status !== 'online') throw new Error('This account is not online.');
   const text = String(message || '').trim();
-  if (!text) throw new Error('Mesaj boş olamaz.');
-  if (text.length > 200) throw new Error('Mesaj en fazla 200 karakter olabilir.');
-  bot.chat(text);
+  if (!text || text.length > 200) throw new Error('Message must contain 1 to 200 characters.');
+  session.bot.chat(text);
   return { sent: true };
 }
 
-function sendTradeCommand() {
-  const command = loadConfig().tradeCommand;
-  if (!command) throw new Error('Önce ayarlardan trade komutunu yaz.');
-  return sendChat(command);
+function sendTradeCommand(id) {
+  const account = getAccount(id);
+  if (!account || !account.tradeCommand) throw new Error('Set a trade command on this account first.');
+  return sendChat(id, account.tradeCommand);
 }
 
-module.exports = { events, getState, startBot, stopBot, sendChat, sendTradeCommand };
+function stopAll() {
+  for (const id of sessions.keys()) stopAccount(id);
+}
+
+module.exports = { publicState, getViewerPort, startAccount, stopAccount, sendChat, sendTradeCommand, stopAll, MAX_ACTIVE_BOTS };

@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#11140f">
+  <title>Minecraft oturumu</title><link rel="stylesheet" href="/styles.css"><script defer src="/account.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar"><a class="brand" href="/accounts"><span class="brand-cube">M</span><span>MC <em>CONTROL</em></span></a><a class="back-link" href="/accounts">← Hesaplara dön</a></header>
+    <section class="account-hero"><div><p class="eyebrow">HESAP OTURUMU</p><h1 id="account-name">Yükleniyor…</h1><p id="account-subtitle" class="intro-copy">Minecraft bağlantısı hazırlanıyor.</p></div><div class="connection-card"><div class="card-label">DURUM</div><div class="status-line"><span id="status-indicator" class="status-indicator"></span><strong id="status-text">Kontrol ediliyor</strong></div><div id="error-text" class="error-text"></div></div></section>
+    <section class="action-row"><button id="start-button" class="button button-primary" type="button">Başlat</button><button id="stop-button" class="button button-secondary" type="button">Durdur</button><button id="trade-button" class="button button-trade small-button" type="button">Trade komutu</button><span id="notice" class="notice" role="status"></span></section>
+    <section class="panel viewer-panel"><div class="panel-heading"><div><p class="eyebrow">CANLI BİRİNCİ ŞAHIS GÖRÜNTÜSÜ</p><h2>Minecraft dünyası</h2></div><span id="viewer-chip" class="viewer-chip">Bağlantı bekleniyor</span></div><div id="viewer-wait" class="viewer-wait">Hesap sunucuya bağlanınca gerçek dünya görüntüsü burada açılır.</div><iframe id="viewer-frame" title="Minecraft dünyasının canlı görüntüsü" class="viewer-frame hidden" allow="fullscreen"></iframe><p class="small-note">Bu, botun baktığı dünyayı gösteren 3D izleme görüntüsüdür; tam Minecraft istemcisi veya klavye kontrolü değildir.</p></section>
+    <section class="panel chat-panel"><div class="panel-heading"><div><p class="eyebrow">HESAP ADINA</p><h2>Sohbet mesajı</h2></div></div><form id="chat-form" class="chat-form"><input id="chat-message" maxlength="200" placeholder="Mesaj yaz"><button class="button button-secondary" type="submit">Gönder</button></form></section>
+    <footer>Görüntü ve mesajlar yalnızca oturum açtığın sunucuda kullanılır.</footer>
+  </main>
+</body>
+</html>

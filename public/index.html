@@ -1,91 +1,41 @@
 <!doctype html>
 <html lang="tr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#11140f">
-  <title>MC AFK Kontrol Paneli</title>
-  <link rel="stylesheet" href="/styles.css">
-  <script defer src="/app.js"></script>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#11140f">
+  <title>MC AFK Hesapları</title><link rel="stylesheet" href="/styles.css"><script defer src="/accounts.js"></script>
 </head>
 <body>
   <main class="shell">
-    <header class="topbar">
-      <a class="brand" href="/" aria-label="MC AFK ana sayfa"><span class="brand-cube">M</span><span>MC <em>CONTROL</em></span></a>
-      <div class="topbar-note"><span class="live-dot"></span> Kişisel sunucu paneli</div>
-    </header>
-
-    <section class="intro">
-      <div>
-        <p class="eyebrow">JAVA EDITION · BOT DASHBOARD</p>
-        <h1>Sunucu bağlantın,<br><span>tek panelde.</span></h1>
-        <p class="intro-copy">Botu yönet, bağlantı durumunu izle ve izinli sunucudaki davranışlarını ayarla.</p>
-      </div>
-      <div class="connection-card">
-        <div class="card-label">BAĞLANTI DURUMU</div>
-        <div class="status-line"><span id="status-indicator" class="status-indicator"></span><strong id="status-text">Kontrol ediliyor</strong></div>
-        <div id="server-label" class="server-label">Sunucu ayarlanmamış</div>
-        <div id="error-text" class="error-text" role="status"></div>
-      </div>
-    </section>
-
-    <section class="action-row" aria-label="Bot kontrolü">
-      <button id="start-button" class="button button-primary" type="button">Botu başlat</button>
-      <button id="stop-button" class="button button-secondary" type="button">Durdur</button>
-      <span id="notice" class="notice" role="status"></span>
-    </section>
-
-    <div class="content-grid">
-      <section class="panel settings-panel">
-        <div class="panel-heading"><div><p class="eyebrow">BAĞLANTI VE DAVRANIŞ</p><h2>Bot ayarları</h2></div><span class="panel-icon">⚙</span></div>
-        <form id="settings-form">
-          <div class="field-grid">
-            <label class="field field-wide">Sunucu adresi<input id="host" name="host" autocomplete="url" placeholder="play.example.net" maxlength="255"></label>
-            <label class="field">Port<input id="port" name="port" type="number" min="1" max="65535" value="25565"></label>
-            <label class="field">Minecraft sürümü<input id="version" name="version" placeholder="Boş bırak: otomatik" maxlength="40"></label>
-            <label class="field field-wide">Kullanıcı adı / Microsoft e-posta<input id="username" name="username" autocomplete="username" maxlength="120"></label>
-            <label class="field field-wide">Oturum türü<select id="authMode" name="authMode"><option value="microsoft">Microsoft hesabı</option><option value="offline">Offline-mode (izinli sunucu)</option></select></label>
-          </div>
-
-          <div class="toggle-list">
-            <label class="toggle"><span><strong>Otomatik yeniden bağlan</strong><small>Bağlantı koparsa bekleyip tekrar dene.</small></span><input id="autoReconnect" type="checkbox"><span class="switch"></span></label>
-            <label class="toggle"><span><strong>Otomatik giriş komutu</strong><small>Yalnızca sunucunun /login parolası gerekir.</small></span><input id="autoLogin" type="checkbox"><span class="switch"></span></label>
-            <label class="field">Giriş komutu<input id="loginCommand" maxlength="100" value="/login {password}"><small>{password} değeri Secrets içindeki MC_LOGIN_PASSWORD ile değiştirilir.</small></label>
-            <div class="secret-status"><span class="secret-lock">◈</span><span>MC_LOGIN_PASSWORD:</span><strong id="secret-status">Kontrol ediliyor</strong><small>Secret değeri panelde hiçbir zaman gösterilmez.</small></div>
-            <label class="toggle"><span><strong>Otomatik mesaj</strong><small>Aralık en az 30 saniyedir.</small></span><input id="autoMessage" type="checkbox"><span class="switch"></span></label>
-            <label class="field">Mesaj<input id="autoMessageText" maxlength="200" placeholder="Gönderilecek mesaj"></label>
-            <label class="field">Mesaj aralığı (saniye)<input id="autoMessageIntervalSeconds" type="number" min="30" max="86400" value="300"></label>
-          </div>
-
-          <div class="trade-box">
-            <div><p class="eyebrow">MANUEL TRADE KOMUTU</p><h3>Sunucuna göre ayarla</h3><p>Komut yalnızca aşağıdaki düğmeye bastığında gönderilir.</p></div>
-            <label class="field">Trade komutu<input id="tradeCommand" maxlength="200" placeholder="Örnek: /trade oyuncu"></label>
-            <button id="trade-button" class="button button-trade" type="button">Trade komutunu gönder</button>
-          </div>
-          <button class="button button-save" type="submit">Ayarları kaydet</button>
-        </form>
+    <header class="topbar"><a class="brand" href="/accounts"><span class="brand-cube">M</span><span>MC <em>CONTROL</em></span></a><span class="topbar-note"><span class="live-dot"></span> Hesap paneli</span></header>
+    <section class="intro intro-small"><div><p class="eyebrow">JAVA EDITION · HESAP YÖNETİMİ</p><h1>Hesapların,<br><span>tek yerde.</span></h1><p class="intro-copy">Bir hesap ekle; kendi bağlantısından oturumunu ve birinci şahıs dünyasını aç.</p></div><div class="connection-card"><div class="card-label">AKTİF OTURUM SINIRI</div><div class="status-line"><strong id="session-limit">Yükleniyor</strong></div><div class="server-label">Her bot oturumu sunucu kaynağı kullanır.</div></div></section>
+    <div class="content-grid accounts-grid">
+      <section class="panel">
+        <div class="panel-heading"><div><p class="eyebrow">HESAPLAR</p><h2>Eklenmiş hesaplar</h2></div><span class="panel-icon">▦</span></div>
+        <div id="accounts-list" class="accounts-list"><div class="empty-state">Hesaplar yükleniyor…</div></div>
       </section>
-
-      <aside class="side-column">
-        <section class="panel quick-panel">
-          <div class="panel-heading"><div><p class="eyebrow">CANLI İŞLEM</p><h2>Sohbet</h2></div><span class="panel-icon">↗</span></div>
-          <form id="chat-form">
-            <label class="field">Mesaj<input id="chat-message" maxlength="200" placeholder="Bot adına mesaj yaz"></label>
-            <button class="button button-secondary full-width" type="submit">Mesaj gönder</button>
-          </form>
-          <p class="small-note">Mesaj ve komutlar bağlı olduğun sunucuda görünür.</p>
-        </section>
-
-        <section class="panel info-panel">
-          <p class="eyebrow">GÜVENLİK</p>
-          <h2>Gizli bilgiler gizli kalır.</h2>
-          <p>Panel parolası DASHBOARD_PASSWORD, sunucu /login parolası MC_LOGIN_PASSWORD olarak Replit Secrets içinde tutulur. Bu değerler GitHub'a gönderilmez.</p>
-          <div class="info-rule"></div>
-          <p class="small-note">Yalnızca bot kullanımına açıkça izin veren sunucularda kullan. Anti-cheat veya AFK kontrollerini aşmaya yönelik özellik yoktur.</p>
-        </section>
-      </aside>
+      <section class="panel form-panel">
+        <div class="panel-heading"><div><p class="eyebrow">YENİ OTURUM</p><h2 id="form-title">Hesap ekle</h2></div><span class="panel-icon">＋</span></div>
+        <form id="account-form">
+          <label class="field">Hesap adı<input id="name" maxlength="60" placeholder="Örn. Ana hesap" required></label>
+          <label class="field">Minecraft kullanıcı adı / Microsoft e-posta<input id="username" maxlength="120" autocomplete="username" required></label>
+          <div class="field-grid"><label class="field">Sunucu adresi<input id="host" maxlength="255" placeholder="play.example.net" required></label><label class="field">Port<input id="port" type="number" min="1" max="65535" value="25565" required></label></div>
+          <label class="field">Minecraft sürümü<input id="version" maxlength="40" placeholder="Boş bırak: otomatik"></label>
+          <label class="field">Minecraft oturumu<select id="authMode"><option value="microsoft">Microsoft hesabı (cihaz kodu ile)</option><option value="offline">Offline-mode (izinli sunucu)</option></select></label>
+          <div class="field"><label class="inline-check"><input id="autoLogin" type="checkbox"><span>Sunucu /login komutunu otomatik gönder</span></label></div>
+          <label class="field">Sunucunun /login parolası<input id="serverLoginPassword" type="password" maxlength="200" autocomplete="new-password" placeholder="Yeni hesapta gerekli; Microsoft parolası değil"><small id="password-help">Hesap şifreleme anahtarı Secrets içinde olmalı. Parola tekrar gösterilmez.</small></label>
+          <label class="field">Giriş komutu<input id="loginCommand" maxlength="100" value="/login {password}"><small>{password} alanı şifreli sunucu parolasıyla değiştirilir.</small></label>
+          <label class="field"><span class="inline-check"><input id="autoMessage" type="checkbox"><span>Otomatik mesajları etkinleştir</span></span></label>
+          <label class="field">Otomatik mesaj<input id="autoMessageText" maxlength="200" placeholder="Gönderilecek mesaj"></label>
+          <label class="field">Mesaj aralığı, saniye<input id="autoMessageIntervalSeconds" type="number" min="30" max="86400" value="300"></label>
+          <label class="field">Manuel trade komutu<input id="tradeCommand" maxlength="200" placeholder="Örn. /trade oyuncu"><small>Yalnızca hesap sayfasındaki düğmeye bastığında gönderilir.</small></label>
+          <label class="field"><span class="inline-check"><input id="autoReconnect" type="checkbox" checked><span>Bağlantı koparsa yeniden bağlan</span></span></label>
+          <div class="form-actions"><button id="save-button" class="button button-primary" type="submit">Hesap ekle</button><button id="cancel-edit" class="button button-secondary hidden" type="button">Düzenlemeyi iptal et</button></div>
+          <div id="form-notice" class="notice" role="status"></div>
+        </form>
+        <p class="small-note">Microsoft parolanı bu forma yazma. Microsoft oturumu resmi cihaz-kodu akışıyla açılır; formdaki parola yalnızca sunucunun /login parolasıdır.</p>
+      </section>
     </div>
-    <footer>Bağlantı bilgisi yaklaşık 2,5 saniyede bir yenilenir.</footer>
+    <footer>Hesap URL’leri panel parolasıyla korunur. Gerçek sunucu kurallarına uy.</footer>
   </main>
 </body>
 </html>

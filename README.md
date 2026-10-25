@@ -1,42 +1,39 @@
 # MC AFK Client
 
-Java Edition için izinli Minecraft sunucularında kullanılmak üzere web kontrol paneli ve Mineflayer istemci başlangıç projesi.
+Java Edition icin izinli Minecraft sunucularinda kullanilmak uzere hesap bazli web paneli. Her hesap kendi bot oturumuna, ayarlarina ve tarayicida acilan birinci sahis 3D dunyasi goruntusune sahiptir.
 
-## Özellikler
+## Ne yapar?
 
-- Web panelinden botu başlatma ve durdurma; bağlantı durumu ve son hata bilgisi.
-- Bağlantı koparsa artan bekleme süresiyle otomatik yeniden bağlanma.
-- Sunucu, port, Minecraft sürümü, kullanıcı adı ve kimlik doğrulama modunu panelden ayarlama.
-- İsteğe bağlı otomatik /login komutu ve düzenli otomatik mesaj.
-- Trade için sunucuya özel komutu yapılandırıp paneldeki düğmeyle elle gönderme.
-- Panel HTTP Basic Auth ile korunur. Parolalar ve hesap kimlik bilgileri repoya yazılmaz.
+- Hesap ekle: gorunen isim, Minecraft kullanici adi/e-posta, sunucu adresi ve oturum turu.
+- Her hesap icin ayri sunucu /login sifresi, otomatik mesaj, yeniden baglanma ve manuel trade komutu.
+- Hesap kartinin baglantisi o hesabin ayrica goruntulenen oturum sayfasini acar ve botu baslatir.
+- Prismarine Viewer, botun gercek sunucu dunyasini tarayicida birinci sahis 3D olarak render eder.
 
-Bu panel gerçek Minecraft 3D görüntüsü sunmaz; bir Minecraft istemcisi gibi sunucuya bağlanan botun durumunu gösterir ve kontrol eder. Trade protokolü sunucuya/plugin'e göre değiştiği için başlangıç sürümü yalnızca senin tanımladığın komutu elle gönderir; otomatik envanter işlemi yapmaz.
+Goruntu tam Mojang Minecraft istemcisi degildir: botun baktigi dunyayi gosterir, klavye ile oyun kontrolu saglamaz. Yalnizca bot kullanimina izin veren sunucularda kullan. AFK/anti-cheat kisitlamalarini atlatan hareket veya gizleme ozelligi yoktur.
 
-## Yerel çalıştırma
+## Guvenlik
 
-1. Node.js 20 veya üstünü yükle.
-2. npm install çalıştır.
-3. .env.example dosyasını .env olarak kopyala.
-4. DASHBOARD_PASSWORD değerini uzun ve benzersiz bir parola ile doldur. En az 16 karakter olmalı.
-5. Sunucu adresi ve Minecraft kullanıcı bilgilerini ayarla. Microsoft hesabı için MC_AUTH_MODE=microsoft; yalnızca izinli offline-mode sunucusu için MC_AUTH_MODE=offline kullan.
-6. npm start çalıştır ve http://localhost:3000 adresini aç. Tarayıcı kimlik doğrulama penceresinde kullanıcı adı admin, parola ise DASHBOARD_PASSWORD değeridir.
+- Microsoft hesap parolasi web formunda istenmez. Microsoft auth ilk baglantida Mineflayer'in resmi cihaz-kodu akisini kullanir; cihaz kodu Replit konsolunda gorunebilir.
+- Formdaki sifre yalnizca sunucunun /login sifresidir ve ACCOUNT_ENCRYPTION_KEY ile AES-256-GCM kullanilarak hesap dosyasinda sifreli saklanir.
+- DASHBOARD_PASSWORD paneli HTTP Basic Auth ile korur. ACCOUNT_ENCRYPTION_KEY, DASHBOARD_PASSWORD ve gerekiyorsa VNC_PASSWORD degerlerini Replit Secrets icinde tut; chat'e veya GitHub'a koyma.
+- Hesap verileri data/accounts.json dosyasinda saklanir. Bu dosya .gitignore icindedir. Kalici depolama gerektiren dagitimlarda persistent storage ayarla.
 
-Replit'te .env dosyası yerine Secrets kullan. Secret isimleri: DASHBOARD_PASSWORD ve gerekliyse MC_LOGIN_PASSWORD. Diğer bağlantı değerleri panelde kaydedilebilir. MC_LOGIN_PASSWORD yalnızca sunucunun /login komutu için gerekir; Minecraft/Microsoft hesap parolası değildir. Microsoft oturum açma akışı ilk bağlantıda Replit konsolunda gösterilebilir; oturum önbelleği .minecraft-auth klasöründe tutulur.
+## Calistirma
 
-## Panel ayarları
+Node.js 20+ gereklidir.
 
-Panelde düzenlenen gizli olmayan ayarlar config.json dosyasına kaydedilir. Bu dosya .gitignore içindedir ve GitHub'a gönderilmez. MC_LOGIN_PASSWORD ve DASHBOARD_PASSWORD hiçbir API yanıtında gösterilmez.
+1. npm install
+2. .env.example dosyasini .env olarak kopyala.
+3. DASHBOARD_PASSWORD icin en az 16 karakterlik benzersiz bir deger, ACCOUNT_ENCRYPTION_KEY icin en az 32 karakterlik rastgele bir deger ayarla.
+4. npm start ve http://localhost:3000 adresini ac. Tarayici giris penceresinde kullanici admin, parola DASHBOARD_PASSWORD.
 
-Otomatik giriş için Secrets içinde MC_LOGIN_PASSWORD tanımla, panelde otomatik girişi etkinleştir ve komutu /login {password} biçiminde bırak. Otomatik mesajın aralığı en az 30 saniyedir. Trade komutu yalnızca düğmeye basıldığında gönderilir.
+Replit'te .env yerine Secrets kullan. Botlar ve goruntu proxy'si ayni Node surecinde calisir. Yayin ortaminda surekli oturum icin Reserved VM/always-on gerekir; birden cok aktif oturum bellek ve CPU tuketir. VIEWER_PORT_BASE, dahili Prismarine goruntu sunucularinin baslangic portudur.
 
-## Replit dağıtımı
+Microsoft hesabiyla ilk giriste cihaz kodu konsolda gosterilebilir. Sunucuya ait /login sifresi Microsoft parolasi degildir; bunu sadece ilgili hesabin ayarlarina gir.
 
-Botun bağlantıda kalması için sürekli çalışan bir sunucu süreci/always-on dağıtım gerekir. Dağıtım ortamında PORT otomatik kullanılır; DASHBOARD_PASSWORD ve gerekli MC_LOGIN_PASSWORD değerlerini Replit Secrets'a ekle. Dağıtım dosya sistemi geçici olabileceğinden panel ayarlarını kalıcı tutmak için kalıcı depolama eklenmesi gerekebilir.
+## Trade
 
-## Güvenli kullanım
-
-Yalnızca bot kullanımına açıkça izin veren sunucularda çalıştır. Sunucunun kurallarına uy; anti-cheat, AFK kısıtlaması veya erişim kontrollerini atlatmaya yönelik özellik yoktur. Şifreleri .env, config.json, ekran görüntüsü veya GitHub'a koyma.
+Hesapta trade komutu tanimlanabilir; komut yalnizca hesap sayfasindaki dugmeye basildiginda gonderilir. Envanter otomasyonu sunucu pluginine gore degistigi icin bu baslangic surumunde otomatik trade yoktur.
 
 ## Kontroller
 
